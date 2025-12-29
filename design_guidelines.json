@@ -1,0 +1,154 @@
+{
+  "design_system": {
+    "identity": {
+      "name": "Chiller Plant Efficiency System",
+      "persona": "E1 - The Anti-AI Designer",
+      "tone": "Industrial Precision, Control Room, High-Fidelity Data",
+      "archetype": "Control Room / Swiss High-Contrast"
+    },
+    "typography": {
+      "font_family": {
+        "headings": "Rajdhani, sans-serif",
+        "body": "Manrope, sans-serif",
+        "mono": "JetBrains Mono, monospace"
+      },
+      "imports": [
+        "https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Manrope:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      ],
+      "rules": {
+        "headings": "Uppercase, tracking-wide, font-bold. Use for KPI labels and Section Headers.",
+        "body": "High legibility, standard tracking.",
+        "data": "ALWAYS use JetBrains Mono for numerical data, sensor readings, and timestamps."
+      }
+    },
+    "colors": {
+      "theme": "dark",
+      "palette": {
+        "background": {
+          "default": "#0B0C10",
+          "paper": "#1F2833",
+          "subtle": "#121418"
+        },
+        "primary": {
+          "main": "#66FCF1",
+          "foreground": "#0B0C10",
+          "hover": "#45A29E"
+        },
+        "secondary": {
+          "main": "#C5C6C7",
+          "foreground": "#0B0C10"
+        },
+        "status": {
+          "success": "#66FCF1",
+          "warning": "#FFA500",
+          "error": "#FF2E63",
+          "info": "#45A29E"
+        },
+        "text": {
+          "primary": "#FFFFFF",
+          "secondary": "#C5C6C7",
+          "muted": "#6B7280"
+        },
+        "border": {
+          "default": "rgba(255, 255, 255, 0.1)",
+          "active": "#66FCF1"
+        }
+      },
+      "tailwind_config": {
+        "colors": {
+          "background": "hsl(222, 47%, 11%)",
+          "foreground": "hsl(210, 40%, 98%)",
+          "card": "hsl(222, 47%, 11%)",
+          "card-foreground": "hsl(210, 40%, 98%)",
+          "popover": "hsl(222, 47%, 11%)",
+          "popover-foreground": "hsl(210, 40%, 98%)",
+          "primary": "hsl(180, 100%, 50%)",
+          "primary-foreground": "hsl(222, 47%, 11%)",
+          "secondary": "hsl(217, 32%, 17%)",
+          "secondary-foreground": "hsl(210, 40%, 98%)",
+          "muted": "hsl(217, 32%, 17%)",
+          "muted-foreground": "hsl(215, 20.2%, 65.1%)",
+          "accent": "hsl(217, 32%, 17%)",
+          "accent-foreground": "hsl(210, 40%, 98%)",
+          "destructive": "hsl(0, 62.8%, 30.6%)",
+          "destructive-foreground": "hsl(210, 40%, 98%)",
+          "border": "hsl(217, 32%, 17%)",
+          "input": "hsl(217, 32%, 17%)",
+          "ring": "hsl(180, 100%, 50%)"
+        }
+      }
+    },
+    "layout": {
+      "grid_system": "Mode B: The Control Room Grid",
+      "spacing": "Dense. Use gap-4 for dashboards. Padding p-4 or p-6 for cards.",
+      "container": "max-w-[1600px] mx-auto p-4",
+      "border_radius": "rounded-sm (2px) or rounded-md (4px). Avoid large rounded corners.",
+      "rules": [
+        "Every pixel must be utilized. Use h-full on children.",
+        "No jagged bottoms in dashboard grids.",
+        "Use 'Grid Borders' style: visible 1px borders between grid items."
+      ]
+    },
+    "components": {
+      "cards": {
+        "style": "Flat background (bg-card), 1px border (border-border), no shadow.",
+        "hover": "Border color changes to Primary (Cyan) on hover. No lift."
+      },
+      "buttons": {
+        "primary": "bg-primary text-primary-foreground hover:bg-primary/90 rounded-sm font-rajdhani uppercase tracking-wider font-bold",
+        "secondary": "border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-sm font-rajdhani uppercase"
+      },
+      "charts": {
+        "library": "Recharts (via Shadcn)",
+        "style": "Minimalist. Remove grid lines if possible. Use neon stroke colors. Tooltips must be dark.",
+        "colors": ["#66FCF1", "#FFA500", "#FF2E63", "#45A29E", "#C5C6C7"]
+      },
+      "navigation": {
+        "style": "Sidebar or Topbar with 'Glassmorphism' (Crystal variant).",
+        "active_state": "Glow effect or solid primary border-l-2."
+      }
+    },
+    "visual_enhancers": {
+      "tracing_beam": "Use for 'Active Simulation' or 'Real-time Monitoring' cards.",
+      "scanlines": "Optional: Overlay a subtle scanline texture on the background for that 'CRT Monitor' feel.",
+      "glassmorphism": "Use only for floating panels (e.g., settings modal, toast notifications). Blur-xl.",
+      "icons": "Lucide React. Use thin strokes (1.5px)."
+    },
+    "media": {
+      "image_urls": {
+        "hero_background": "https://images.unsplash.com/photo-1697281679290-ad7be1b10682?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzR8MHwxfHNlYXJjaHwxfHxpbmR1c3RyaWFsJTIwY2hpbGxlciUyMHBsYW50JTIwbWFjaGluZXJ5fGVufDB8fHx8MTc2NTc2ODAzMHww&ixlib=rb-4.1.0&q=85",
+        "engineer_tablet": "https://images.unsplash.com/photo-1659353587228-5dbbebb5d98f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDF8MHwxfHNlYXJjaHwxfHxodmFjJTIwZW5naW5lZXIlMjB0YWJsZXQlMjBpbmR1c3RyaWFsfGVufDB8fHx8MTc2NTc2ODAzMnww&ixlib=rb-4.1.0&q=85",
+        "server_room": "https://images.unsplash.com/photo-1581091226507-ca552def2daf?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDF8MHwxfHNlYXJjaHwyfHxodmFjJTIwZW5naW5lZXIlMjB0YWJsZXQlMjBpbmR1c3RyaWFsfGVufDB8fHx8MTc2NTc2ODAzMnww&ixlib=rb-4.1.0&q=85"
+      },
+      "usage": "Use hero_background with a heavy dark overlay (bg-black/80) for the login screen or dashboard background."
+    },
+    "motion": {
+      "type": "Reduced. Professional.",
+      "transitions": "transition-colors duration-200",
+      "animations": "Pulse effect for 'Live' status indicators. No bouncy entrances."
+    },
+    "accessibility": {
+      "contrast": "Ensure text is #C5C6C7 or #FFFFFF on dark backgrounds.",
+      "testing": "All interactive elements must have data-testid attributes."
+    }
+  },
+  "instructions_to_main_agent": {
+    "setup": [
+      "Install fonts: Rajdhani, Manrope, JetBrains Mono.",
+      "Update tailwind.config.js with the provided colors and font families.",
+      "Set body background to #0B0C10."
+    ],
+    "implementation_rules": [
+      "Use 'Rajdhani' for all headings (h1-h6).",
+      "Use 'JetBrains Mono' for all sensor values (kW/TR, COP, Temp).",
+      "Create a 'DashboardGrid' component that enforces the Control Room layout.",
+      "Use Shadcn Cards but remove the rounded-xl, make them rounded-sm or rounded-md.",
+      "Ensure the 'Simulation Engine' page feels like a tool, not a landing page. Use split panes."
+    ],
+    "universal_guidelines": [
+      "Do not use gradients for backgrounds, use solid dark colors.",
+      "Use 1px borders with low opacity (10-20%) to define structure.",
+      "Interactive elements must have clear hover states (text color change or border glow)."
+    ]
+  }
+}
