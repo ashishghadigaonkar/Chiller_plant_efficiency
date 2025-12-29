@@ -19,11 +19,16 @@ export default function TrendsChart({ historicalData }) {
     index: index + 1,
     timestamp: new Date(record.timestamp).toLocaleTimeString(),
     kw_per_tr: parseFloat(record.kw_per_tr?.toFixed(3) || 0),
+    plant_kw_per_tr: parseFloat(record.plant_kw_per_tr?.toFixed(3) || record.kw_per_tr?.toFixed(3) || 0),
     cop: parseFloat(record.cop?.toFixed(2) || 0),
     cooling_load: parseFloat(record.cooling_load_kw?.toFixed(1) || 0),
     chiller_power: parseFloat(record.chiller_power?.toFixed(1) || 0),
+    total_plant_power: parseFloat(record.total_plant_power?.toFixed(1) || record.chiller_power?.toFixed(1) || 0),
     ambient_temp: parseFloat(record.ambient_temp?.toFixed(1) || 0),
+    wet_bulb_temp: parseFloat(record.wet_bulb_temp?.toFixed(1) || 0),
     delta_t: parseFloat(record.delta_t?.toFixed(1) || 0),
+    tower_approach: parseFloat(record.tower_approach?.toFixed(1) || 0),
+    tower_range: parseFloat(record.tower_range?.toFixed(1) || 0),
   }));
 
   const CustomTooltip = ({ active, payload, label }) => {
@@ -50,19 +55,20 @@ export default function TrendsChart({ historicalData }) {
       </div>
 
       <Tabs defaultValue="efficiency" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-secondary border border-border" data-testid="trends-tabs">
+        <TabsList className="grid w-full grid-cols-5 bg-secondary border border-border" data-testid="trends-tabs">
           <TabsTrigger value="efficiency" data-testid="tab-efficiency">Efficiency Trend</TabsTrigger>
           <TabsTrigger value="power" data-testid="tab-power">Load vs Power</TabsTrigger>
+          <TabsTrigger value="tower" data-testid="tab-tower">Cooling Tower</TabsTrigger>
           <TabsTrigger value="cop-ambient" data-testid="tab-cop-ambient">COP vs Ambient</TabsTrigger>
           <TabsTrigger value="delta-t" data-testid="tab-delta-t">ΔT Analysis</TabsTrigger>
         </TabsList>
 
-        {/* kW/TR Trend */}
+        {/* kW/TR Trend - Now shows both Chiller and Plant */}
         <TabsContent value="efficiency" data-testid="efficiency-chart">
           <Card className="border border-border bg-card">
             <CardHeader>
-              <CardTitle className="font-rajdhani">kW/TR EFFICIENCY TREND</CardTitle>
-              <CardDescription>Lower values indicate better efficiency</CardDescription>
+              <CardTitle className="font-rajdhani">CHILLER vs PLANT kW/TR EFFICIENCY TREND</CardTitle>
+              <CardDescription>Comparing equipment efficiency vs total system efficiency</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400}>
@@ -86,11 +92,19 @@ export default function TrendsChart({ historicalData }) {
                     stroke="#66FCF1" 
                     strokeWidth={2} 
                     dot={{ fill: '#66FCF1', r: 3 }} 
-                    name="kW/TR"
+                    name="Chiller kW/TR"
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="plant_kw_per_tr" 
+                    stroke="#FF2E63" 
+                    strokeWidth={2} 
+                    dot={{ fill: '#FF2E63', r: 3 }} 
+                    name="Plant kW/TR"
                   />
                   {/* Benchmark lines */}
-                  <Line type="monotone" dataKey={() => 0.6} stroke="#45A29E" strokeDasharray="5 5" name="Excellent (<0.6)" />
-                  <Line type="monotone" dataKey={() => 0.8} stroke="#FFA500" strokeDasharray="5 5" name="Average (<0.8)" />
+                  <Line type="monotone" dataKey={() => 0.6} stroke="#45A29E" strokeDasharray="5 5" name="Chiller Excellent (<0.6)" />
+                  <Line type="monotone" dataKey={() => 0.75} stroke="#FFA500" strokeDasharray="5 5" name="Plant Excellent (<0.75)" />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
@@ -101,8 +115,8 @@ export default function TrendsChart({ historicalData }) {
         <TabsContent value="power" data-testid="power-chart">
           <Card className="border border-border bg-card">
             <CardHeader>
-              <CardTitle className="font-rajdhani">COOLING LOAD vs CHILLER POWER</CardTitle>
-              <CardDescription>Relationship between load and power consumption</CardDescription>
+              <CardTitle className="font-rajdhani">COOLING LOAD vs TOTAL PLANT POWER</CardTitle>
+              <CardDescription>Total system power consumption vs cooling output</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400}>
@@ -130,14 +144,83 @@ export default function TrendsChart({ historicalData }) {
                   />
                   <Area 
                     type="monotone" 
-                    dataKey="chiller_power" 
+                    dataKey="total_plant_power" 
                     stackId="2"
                     stroke="#FF2E63" 
                     fill="rgba(255, 46, 99, 0.3)" 
-                    name="Chiller Power (kW)"
+                    name="Total Plant Power (kW)"
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="chiller_power" 
+                    stackId="3"
+                    stroke="#FFA500" 
+                    fill="rgba(255, 165, 0, 0.2)" 
+                    name="Chiller Only (kW)"
                   />
                 </AreaChart>
               </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Cooling Tower Performance */}
+        <TabsContent value="tower" data-testid="tower-chart">
+          <Card className="border border-border bg-card">
+            <CardHeader>
+              <CardTitle className="font-rajdhani">COOLING TOWER PERFORMANCE</CardTitle>
+              <CardDescription>Range, Approach, and Temperature Correlation</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                  <XAxis 
+                    dataKey="timestamp" 
+                    stroke="#C5C6C7" 
+                    style={{ fontSize: '12px', fontFamily: 'JetBrains Mono' }}
+                  />
+                  <YAxis 
+                    stroke="#C5C6C7" 
+                    style={{ fontSize: '12px', fontFamily: 'JetBrains Mono' }}
+                    label={{ value: 'Temperature (°C)', angle: -90, position: 'insideLeft', style: { fill: '#C5C6C7' } }}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend wrapperStyle={{ fontFamily: 'Rajdhani' }} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="tower_range" 
+                    stroke="#66FCF1" 
+                    strokeWidth={2} 
+                    dot={{ fill: '#66FCF1', r: 3 }} 
+                    name="Range (°C)"
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="tower_approach" 
+                    stroke="#FF2E63" 
+                    strokeWidth={2} 
+                    dot={{ fill: '#FF2E63', r: 3 }} 
+                    name="Approach (°C)"
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="wet_bulb_temp" 
+                    stroke="#FFA500" 
+                    strokeWidth={1} 
+                    strokeDasharray="5 5"
+                    name="Wet Bulb (°C)"
+                  />
+                  {/* Optimal lines */}
+                  <Line type="monotone" dataKey={() => 4} stroke="#45A29E" strokeDasharray="5 5" name="Optimal Approach (4°C)" />
+                </LineChart>
+              </ResponsiveContainer>
+              <div className="mt-4 p-4 bg-secondary/50 rounded-sm border border-border">
+                <p className="text-sm text-muted-foreground">
+                  <strong className="text-foreground">Analysis:</strong> Range = Cond In - Cond Out (4-8°C typical). 
+                  Approach = Cond Out - Wet Bulb (&lt;4°C excellent). Lower approach means better tower cooling efficiency.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -18,6 +18,9 @@ class SimulationEngine:
         - Ambient temperature cycles
         - Part-load and full-load behavior
         - Optional fouling/aging effects
+        - Pump power based on flow rates
+        - Tower fan power with cube law
+        - Wet bulb temperature
         """
         readings = []
         start_time = datetime.now(timezone.utc)
@@ -32,6 +35,15 @@ class SimulationEngine:
             ambient_cycle = math.sin((hour_of_day - 6) * math.pi / 12)
             ambient_temp = config.ambient_temp_base + 5 * ambient_cycle
             ambient_temp += np.random.normal(0, 0.5)
+            
+            # Wet bulb temperature (typically 5-8°C below dry bulb in India)
+            # Higher humidity = closer to dry bulb
+            humidity = 60 + 20 * math.sin(hour_of_day * math.pi / 12) + np.random.normal(0, 5)
+            humidity = max(30, min(90, humidity))
+            
+            humidity_factor = humidity / 100.0
+            wet_bulb_depression = 8 - (3 * humidity_factor)  # 5-8°C depression
+            wet_bulb_temp = ambient_temp - wet_bulb_depression + np.random.normal(0, 0.3)
             
             # Load varies with time of day: higher during business hours
             if 8 <= hour_of_day < 18:
@@ -57,27 +69,55 @@ class SimulationEngine:
             chw_flow = base_flow * load_multiplier + np.random.normal(0, 2)
             
             # Condenser temperatures
-            approach_temp = 3.0  # Cooling tower approach
-            cond_inlet = ambient_temp + approach_temp + np.random.normal(0, 0.5)
-            cond_outlet = cond_inlet + 5.0 * load_multiplier + np.random.normal(0, 0.3)
+            # Approach temp depends on cooling tower performance (2-5°C typical)
+            approach_temp = 3.0 + np.random.normal(0, 0.5)
+            cond_outlet = wet_bulb_temp + approach_temp
+            
+            # Range typically 4-8°C
+            tower_range = 5.0 + load_multiplier * 2 + np.random.normal(0, 0.5)
+            cond_inlet = cond_outlet + tower_range
+            
             cond_flow = base_flow * 1.2 * load_multiplier + np.random.normal(0, 2)
             
             # Chiller power: based on load and efficiency
-            # Ideal kW/TR is around 0.6, but varies with conditions
             cooling_kw = 4.186 * chw_flow * (chw_return - chw_supply)
             cooling_tr = cooling_kw / 3.517
             
             # Efficiency degrades with ambient temp and fouling
             base_kw_per_tr = 0.58
-            temp_penalty = 0.01 * (ambient_temp - 25)  # 1% per degree above 25°C
+            # Condenser temp penalty: +1°C = +2-3% power
+            temp_penalty = 0.02 * (cond_inlet - 30)
             efficiency_kw_per_tr = (base_kw_per_tr + temp_penalty) * fouling_factor
             
             chiller_power = max(cooling_tr * efficiency_kw_per_tr, 10)  # Min 10 kW
             chiller_power += np.random.normal(0, chiller_power * self.noise_factor)
             
-            # Humidity (optional)
-            humidity = 60 + 20 * math.sin(hour_of_day * math.pi / 12) + np.random.normal(0, 5)
-            humidity = max(30, min(90, humidity))
+            # ===== PUMP POWER CALCULATIONS =====
+            # CHW Pump: roughly 0.02-0.03 kW per L/s flow
+            chw_pump_base_power = 50.0  # kW at design flow
+            chw_pump_power = chw_pump_base_power * (chw_flow / base_flow) ** 1.5  # Affinity laws
+            chw_pump_power = max(20, min(80, chw_pump_power + np.random.normal(0, 2)))
+            
+            # CW Pump: slightly higher than CHW due to higher flow
+            cw_pump_base_power = 60.0  # kW at design flow
+            cw_pump_power = cw_pump_base_power * (cond_flow / (base_flow * 1.2)) ** 1.5
+            cw_pump_power = max(30, min(90, cw_pump_power + np.random.normal(0, 2)))
+            
+            # ===== COOLING TOWER FAN POWER (CUBE LAW) =====
+            # Fan speed adjusts based on ambient temperature and load
+            # Higher ambient = need more airflow = higher speed
+            base_fan_power = 35.0  # kW at 100% speed
+            
+            # Fan speed control (50-100%)
+            # Speed increases with: higher ambient, higher load
+            speed_from_ambient = 50 + (ambient_temp - 25) * 2  # Higher temp = more speed
+            speed_from_load = 50 + load_multiplier * 50  # Higher load = more speed
+            fan_speed = (speed_from_ambient + speed_from_load) / 2
+            fan_speed = max(50, min(100, fan_speed + np.random.normal(0, 5)))
+            
+            # Cube law: Power ∝ Speed³
+            tower_fan_power = base_fan_power * (fan_speed / 100.0) ** 3
+            tower_fan_power = max(5, tower_fan_power + np.random.normal(0, 1))
             
             reading = SensorReading(
                 timestamp=timestamp,
@@ -89,7 +129,12 @@ class SimulationEngine:
                 cond_flow_rate=round(max(0, cond_flow), 2),
                 chiller_power=round(max(0, chiller_power), 2),
                 ambient_temp=round(ambient_temp, 2),
-                humidity=round(humidity, 1)
+                humidity=round(humidity, 1),
+                wet_bulb_temp=round(wet_bulb_temp, 2),
+                chw_pump_power=round(chw_pump_power, 2),
+                cw_pump_power=round(cw_pump_power, 2),
+                tower_fan_power=round(tower_fan_power, 2),
+                tower_fan_speed=round(fan_speed, 1)
             )
             
             readings.append(reading)

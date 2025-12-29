@@ -16,6 +16,11 @@ class SensorReading(BaseModel):
     chiller_power: float  # kW
     ambient_temp: float  # °C
     humidity: Optional[float] = None  # %
+    wet_bulb_temp: Optional[float] = None  # °C - for cooling tower approach
+    chw_pump_power: Optional[float] = None  # kW
+    cw_pump_power: Optional[float] = None  # kW
+    tower_fan_power: Optional[float] = None  # kW
+    tower_fan_speed: Optional[float] = 100.0  # % - for cube law
 
 class CalculatedMetrics(BaseModel):
     """Thermodynamic calculations and efficiency metrics"""
@@ -24,10 +29,27 @@ class CalculatedMetrics(BaseModel):
     timestamp: datetime
     cooling_load_kw: float
     cooling_capacity_tr: float
-    kw_per_tr: float
+    kw_per_tr: float  # Chiller only
     cop: float
     delta_t: float
     efficiency_status: str  # excellent, average, poor
+    
+    # Cooling Tower Performance
+    tower_range: Optional[float] = None  # °C
+    tower_approach: Optional[float] = None  # °C
+    heat_rejected_kw: Optional[float] = None  # kW
+    
+    # Plant-Level Efficiency (CRITICAL for electricity bill)
+    total_plant_power: Optional[float] = None  # kW (Chiller + Pumps + Fan)
+    plant_kw_per_tr: Optional[float] = None  # Total plant power / TR
+    plant_cop: Optional[float] = None  # Cooling Load / Total Plant Power
+    plant_efficiency_status: Optional[str] = None  # excellent, average, poor
+    
+    # Financial Metrics
+    energy_cost_per_hour: Optional[float] = None  # ₹/hour
+    potential_savings_percent: Optional[float] = None  # %
+    potential_savings_inr_per_year: Optional[float] = None  # ₹
+    co2_emissions_kg_per_hour: Optional[float] = None  # kg CO₂
     
 class SimulationConfig(BaseModel):
     """Configuration for simulation engine"""

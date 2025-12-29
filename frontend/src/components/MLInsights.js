@@ -127,19 +127,28 @@ export default function MLInsights({ systemStatus, summaryData, onRefresh }) {
           {trainingResults && (
             <div className="p-4 bg-secondary/50 rounded-sm border border-border space-y-2" data-testid="training-results">
               <p className="text-xs font-rajdhani uppercase text-muted-foreground">Training Results:</p>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <p className="text-xs text-muted-foreground">XGBoost R²</p>
-                  <p className="text-lg font-mono data-value text-primary">{trainingResults.xgb_r2_score}</p>
+                  <p className="text-xs text-muted-foreground">XGB Chiller R²</p>
+                  <p className="text-lg font-mono data-value text-primary">{trainingResults.xgb_chiller_r2 || trainingResults.xgb_r2_score}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">RandomForest R²</p>
-                  <p className="text-lg font-mono data-value">{trainingResults.rf_r2_score}</p>
+                  <p className="text-xs text-muted-foreground">XGB Plant R²</p>
+                  <p className="text-lg font-mono data-value text-primary">{trainingResults.xgb_plant_r2 || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">RF Chiller R²</p>
+                  <p className="text-lg font-mono data-value">{trainingResults.rf_chiller_r2 || trainingResults.rf_r2_score}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Training Samples</p>
                   <p className="text-lg font-mono data-value">{trainingResults.training_samples}</p>
                 </div>
+              </div>
+              <div className="mt-2 p-2 bg-secondary/30 rounded border border-border">
+                <p className="text-xs text-muted-foreground">
+                  Trained on both <strong className="text-foreground">Chiller kW/TR</strong> and <strong className="text-primary">Plant kW/TR</strong> for comprehensive system analysis
+                </p>
               </div>
             </div>
           )}
