@@ -103,3 +103,68 @@ class OptimizationRecommendation(BaseModel):
     recommended_value: float
     estimated_savings_percent: float
     rationale: str
+
+class ManualAuditInput(BaseModel):
+    """Manual data input for on-site audit calculator"""
+    chw_supply_temp: float = Field(..., ge=-10, le=15, description="CHW Supply Temperature (°C)")
+    chw_return_temp: float = Field(..., ge=0, le=25, description="CHW Return Temperature (°C)")
+    chw_flow_rate: float = Field(..., gt=0, le=1000, description="CHW Flow Rate (L/s)")
+    chiller_power: float = Field(..., gt=0, le=10000, description="Chiller Power (kW)")
+    cond_inlet_temp: float = Field(..., ge=15, le=50, description="Condenser Inlet Temp (°C)")
+    cond_outlet_temp: float = Field(..., ge=15, le=50, description="Condenser Outlet Temp (°C)")
+    cond_flow_rate: Optional[float] = Field(None, gt=0, le=1000, description="Condenser Flow Rate (L/s)")
+    ambient_temp: float = Field(..., ge=15, le=50, description="Ambient Temperature (°C)")
+    wet_bulb_temp: float = Field(..., ge=10, le=40, description="Wet Bulb Temperature (°C)")
+    
+    # Auxiliary equipment (optional)
+    chw_pump_power: Optional[float] = Field(None, ge=0, le=500, description="CHW Pump Power (kW)")
+    cw_pump_power: Optional[float] = Field(None, ge=0, le=500, description="CW Pump Power (kW)")
+    tower_fan_power: Optional[float] = Field(None, ge=0, le=500, description="Tower Fan Power (kW)")
+    
+    # Financial parameters
+    electricity_tariff: float = Field(8.0, gt=0, le=50, description="Electricity Tariff (₹/kWh)")
+    operating_hours_per_day: float = Field(16, gt=0, le=24, description="Operating Hours per Day")
+    operating_days_per_year: int = Field(300, gt=0, le=365, description="Operating Days per Year")
+
+class ManualAuditResult(BaseModel):
+    """Results from manual audit calculator"""
+    model_config = ConfigDict(extra="ignore")
+    
+    # Inputs echo
+    inputs: ManualAuditInput
+    
+    # Calculated metrics
+    cooling_load_kw: float
+    cooling_capacity_tr: float
+    chiller_kw_per_tr: float
+    plant_kw_per_tr: float
+    cop: float
+    plant_cop: float
+    
+    # Temperature analysis
+    delta_t: float
+    delta_t_status: str  # "Healthy", "Low", "Acceptable"
+    tower_range: Optional[float] = None
+    tower_approach: Optional[float] = None
+    tower_status: str = "N/A"
+    
+    # Efficiency classification
+    chiller_efficiency_status: str  # "excellent", "average", "poor"
+    plant_efficiency_status: str
+    
+    # Financial impact
+    total_plant_power: float
+    energy_kwh_per_day: float
+    energy_kwh_per_month: float
+    energy_kwh_per_year: float
+    cost_per_day: float
+    cost_per_month: float
+    cost_per_year: float
+    
+    # Environmental
+    co2_kg_per_year: float
+    
+    # Recommendations
+    diagnostic_message: str
+    recommendations: list[str]
+    estimated_savings_inr_per_day: Optional[float] = None

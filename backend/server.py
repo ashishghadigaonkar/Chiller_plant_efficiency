@@ -19,11 +19,15 @@ from models.sensor_data import (
     MLPredictionRequest,
     MLPredictionResponse,
     AnomalyDetectionResponse,
-    OptimizationRecommendation
+    OptimizationRecommendation,
+    ManualAuditInput,
+    ManualAuditResult
 )
 from services.simulation_engine import SimulationEngine
 from services.thermodynamics import ThermodynamicsCalculator
 from services.ml_engine import MLEngine
+from services.manual_audit import ManualAuditCalculator
+from services.report_generator import ReportGenerator
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -37,6 +41,8 @@ db = client[os.environ['DB_NAME']]
 simulation_engine = SimulationEngine()
 thermo_calculator = ThermodynamicsCalculator()
 ml_engine = MLEngine()
+manual_audit_calculator = ManualAuditCalculator()
+report_generator = ReportGenerator()
 
 # Create the main app
 app = FastAPI(title="Chiller Plant Efficiency System")
@@ -373,6 +379,86 @@ async def system_status():
         "database_connected": True,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
+
+# ============================================
+# MANUAL AUDIT CALCULATOR
+# ============================================
+
+@api_router.post("/audit/calculate", response_model=ManualAuditResult)
+async def calculate_manual_audit(input_data: ManualAuditInput):
+    """
+    Manual on-site audit calculator.
+    Calculates all efficiency metrics from manually entered field data.
+    """
+    try:
+        result = manual_audit_calculator.calculate_audit(input_data)
+        return result
+    except Exception as e:
+        logger.error(f"Manual audit calculation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================
+# REPORT GENERATION
+# ============================================
+
+@api_router.post("/reports/audit-pdf")
+async def generate_audit_pdf_report(audit_result: ManualAuditResult):
+    """
+    Generate professional PDF report from audit results.
+    Returns downloadable PDF file.
+    """
+    try:
+        pdf_buffer = report_generator.generate_manual_audit_report(audit_result)
+        
+        return StreamingResponse(
+            io.BytesIO(pdf_buffer.getvalue()),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=chiller_audit_report_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.pdf"
+            }
+        )
+    except Exception as e:
+        logger.error(f"PDF report generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/reports/dashboard-summary")
+async def generate_dashboard_summary_report():
+    """
+    Generate CSV summary report of current dashboard data.
+    """
+    try:
+        # Get latest data
+        cursor = db.sensor_data.find(
+            {"is_valid": True},
+            {"_id": 0}
+        ).sort("timestamp", -1).limit(100)
+        
+        data = await cursor.to_list(length=100)
+        
+        if not data:
+            raise HTTPException(status_code=404, detail="No data available for report")
+        
+        # Create CSV
+        output = io.StringIO()
+        if data:
+            fieldnames = list(data[0].keys())
+            writer = csv.DictWriter(output, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(data)
+        
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=dashboard_summary_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"CSV report generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Include router
 app.include_router(api_router)
