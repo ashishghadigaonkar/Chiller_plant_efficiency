@@ -1,0 +1,117 @@
+/* Virtual Plant Layout Styles */
+
+.plant-component {
+  transition: transform 0.2s ease;
+}
+
+.plant-component:hover {
+  transform: scale(1.05);
+  z-index: 10;
+}
+
+.component-box {
+  background: rgba(15, 23, 42, 0.95);
+  border: 2px solid;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  min-width: 120px;
+  transition: all 0.3s ease;
+}
+
+.component-box:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+}
+
+.green-status {
+  border-color: #22c55e;
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+}
+
+.green-status:hover {
+  box-shadow: 0 0 30px rgba(34, 197, 94, 0.5);
+}
+
+.yellow-status {
+  border-color: #eab308;
+  box-shadow: 0 0 20px rgba(234, 179, 8, 0.3);
+}
+
+.yellow-status:hover {
+  box-shadow: 0 0 30px rgba(234, 179, 8, 0.5);
+}
+
+.red-status {
+  border-color: #ef4444;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+  animation: pulse-red 2s ease-in-out infinite;
+}
+
+.red-status:hover {
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.5);
+}
+
+@keyframes pulse-red {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.6);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin 3s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.flow-line {
+  stroke-dasharray: 10 5;
+  animation: flow 2s linear infinite;
+}
+
+.flow-line-animated {
+  stroke-dasharray: 20 10;
+  animation: flow 1.5s linear infinite;
+}
+
+@keyframes flow {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: 30;
+  }
+}
+
+/* Status indicator pulse */
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.status-indicator.live {
+  background-color: #22c55e;
+  box-shadow: 0 0 10px #22c55e;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}

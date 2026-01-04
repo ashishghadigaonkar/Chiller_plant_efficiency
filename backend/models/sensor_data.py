@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Dict
 
 class SensorReading(BaseModel):
     """Real-time sensor data from chiller plant"""
@@ -168,3 +168,78 @@ class ManualAuditResult(BaseModel):
     diagnostic_message: str
     recommendations: list[str]
     estimated_savings_inr_per_day: Optional[float] = None
+
+
+
+# ======== NEW MODELS FOR CONTROL LOGIC & DIAGNOSTICS ========
+
+class ControlAction(BaseModel):
+    """Control action recommendation"""
+    model_config = ConfigDict(extra="ignore")
+    
+    control_type: str  # "chiller_sequencing", "chw_supply_reset", "pump_vfd", "tower_fan"
+    action: str  # "shutdown_unit", "startup_unit", "increase_setpoint", "reduce_speed", etc.
+    message: str
+    rationale: str
+    requires_confirmation: bool
+    priority: str  # "high", "medium", "low"
+    timestamp: str
+    status: str  # "pending_confirmation", "applied", "rejected", "informational"
+    
+    # Action-specific fields (optional)
+    current_value: Optional[float] = None
+    recommended_value: Optional[float] = None
+    estimated_savings_pct: Optional[float] = None
+    estimated_power_savings_pct: Optional[float] = None
+    impact: Optional[str] = None
+
+class DiagnosticResult(BaseModel):
+    """Diagnostic analysis result"""
+    model_config = ConfigDict(extra="ignore")
+    
+    parameter: str  # "delta_t", "tower_approach", "compressor_lift", "flow_pumping"
+    value: Optional[float] = None
+    severity: str  # "excellent", "acceptable", "warning", "critical"
+    diagnosis: str
+    root_cause: str
+    recommendations: List[str]
+    timestamp: str
+
+class PlantComponentStatus(BaseModel):
+    """Status of individual plant components"""
+    model_config = ConfigDict(extra="ignore")
+    
+    component_id: str  # "CH-1", "CT-1", "CWP-1", etc.
+    component_type: str  # "chiller", "cooling_tower", "pump", "pipeline"
+    status: str  # "running", "stopped", "warning", "critical", "optimal"
+    status_color: str  # "green", "yellow", "red"
+    current_load_pct: Optional[float] = None
+    power_kw: Optional[float] = None
+    efficiency_kw_per_tr: Optional[float] = None
+    vfd_speed_pct: Optional[float] = None
+    message: str
+    recommendations: List[str] = []
+
+class DigitalTwinComparison(BaseModel):
+    """Comparison between live and digital twin states"""
+    model_config = ConfigDict(extra="ignore")
+    
+    timestamp: str
+    action: Dict
+    live_state: Dict
+    twin_state: Dict
+    improvements: Dict
+    recommendation: str
+
+class PlantStatusSummary(BaseModel):
+    """Overall plant status for virtual layout"""
+    model_config = ConfigDict(extra="ignore")
+    
+    timestamp: str
+    overall_status: str  # "normal", "warning", "critical"
+    components: List[PlantComponentStatus]
+    active_chillers: int
+    active_towers: int
+    total_cooling_tr: float
+    total_power_kw: float
+    plant_kw_per_tr: float
