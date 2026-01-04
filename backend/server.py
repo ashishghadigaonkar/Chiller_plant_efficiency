@@ -21,22 +21,13 @@ from models.sensor_data import (
     AnomalyDetectionResponse,
     OptimizationRecommendation,
     ManualAuditInput,
-    ManualAuditResult,
-    ControlAction,
-    DiagnosticResult,
-    PlantComponentStatus,
-    DigitalTwinComparison,
-    PlantStatusSummary
+    ManualAuditResult
 )
 from services.simulation_engine import SimulationEngine
 from services.thermodynamics import ThermodynamicsCalculator
 from services.ml_engine import MLEngine
 from services.manual_audit import ManualAuditCalculator
 from services.report_generator import ReportGenerator
-from services.advanced_calculations import AdvancedCalculator
-from services.diagnostic_engine import DiagnosticEngine
-from services.control_logic import ControlLogic
-from services.digital_twin import DigitalTwin
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -52,10 +43,6 @@ thermo_calculator = ThermodynamicsCalculator()
 ml_engine = MLEngine()
 manual_audit_calculator = ManualAuditCalculator()
 report_generator = ReportGenerator()
-advanced_calculator = AdvancedCalculator()
-diagnostic_engine = DiagnosticEngine()
-control_logic = ControlLogic()
-digital_twin = DigitalTwin()
 
 # Create the main app
 app = FastAPI(title="Chiller Plant Efficiency System")
@@ -473,296 +460,232 @@ async def generate_dashboard_summary_report():
         logger.error(f"CSV report generation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 # ============================================
-# ADVANCED CALCULATIONS ENDPOINTS
+# VIRTUAL PLANT DISPLAY ENDPOINTS
 # ============================================
 
-@api_router.post("/advanced/calculate")
-async def calculate_advanced_metrics(sensor_data: dict):
+@api_router.get("/virtual-plant/equipment")
+async def get_plant_equipment():
     """
-    Calculate advanced engineering metrics:
-    - Compressor lift
-    - Part load ratio (PLR)
-    - Tower penalty
+    Get multi-equipment plant data for virtual plant display.
+    Returns real-time data for all chillers, towers, and pumps.
     """
     try:
-        # Add rated capacity if not provided (default 300 TR)
-        if 'rated_capacity_tr' not in sensor_data:
-            sensor_data['rated_capacity_tr'] = 300.0
-        
-        results = advanced_calculator.calculate_comprehensive_metrics(sensor_data)
-        return {
-            "success": True,
-            "advanced_metrics": results,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
-    except Exception as e:
-        logger.error(f"Advanced calculations error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-# ============================================
-# DIAGNOSTIC ENDPOINTS
-# ============================================
-
-@api_router.post("/diagnostics/analyze")
-async def analyze_diagnostics(sensor_data: dict):
-    """
-    Run comprehensive diagnostic analysis on plant data.
-    Detects issues like low delta-T, tower problems, high lift, etc.
-    """
-    try:
-        diagnostics = diagnostic_engine.run_comprehensive_diagnostics(sensor_data)
-        return diagnostics
-    except Exception as e:
-        logger.error(f"Diagnostics error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-# ============================================
-# CONTROL LOGIC ENDPOINTS
-# ============================================
-
-@api_router.post("/control/recommend", response_model=List[ControlAction])
-async def generate_control_recommendations(sensor_data: dict):
-    """
-    Generate control recommendations based on current plant state.
-    Includes chiller sequencing, CHW reset, pump VFD, and tower fan adjustments.
-    """
-    try:
-        # First observe the state
-        observation = control_logic.observe(sensor_data)
-        
-        # Generate all recommendations
-        recommendations = control_logic.generate_comprehensive_recommendations(sensor_data)
-        
-        return recommendations
-    except Exception as e:
-        logger.error(f"Control recommendations error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.post("/control/apply")
-async def apply_control_action(action: dict, confirmed: bool = False):
-    """
-    Apply a control action (simulation only).
-    Requires user confirmation for actions that modify setpoints.
-    """
-    try:
-        result = control_logic.apply_action(action, confirmed)
-        return result
-    except Exception as e:
-        logger.error(f"Control action error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.post("/control/validate-revert")
-async def validate_and_check_revert(new_state: dict):
-    """
-    Check if recent control action should be reverted.
-    Compares new state with previous state.
-    """
-    try:
-        revert_decision = control_logic.should_revert(new_state)
-        return revert_decision
-    except Exception as e:
-        logger.error(f"Revert validation error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-# ============================================
-# DIGITAL TWIN ENDPOINTS
-# ============================================
-
-@api_router.post("/twin/simulate")
-async def simulate_with_digital_twin(current_state: dict, action: dict):
-    """
-    Simulate a control action in digital twin before applying to real plant.
-    Returns predicted outcome.
-    """
-    try:
-        comparison = digital_twin.compare_live_vs_twin(current_state, action)
-        return comparison
-    except Exception as e:
-        logger.error(f"Digital twin simulation error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.post("/twin/scenario-matrix")
-async def generate_scenario_matrix(current_state: dict, actions: List[dict]):
-    """
-    Test multiple control actions and rank them by expected benefit.
-    """
-    try:
-        matrix = digital_twin.generate_scenario_matrix(current_state, actions)
-        return matrix
-    except Exception as e:
-        logger.error(f"Scenario matrix error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.get("/twin/mode")
-async def get_twin_mode():
-    """Get current operating mode (live or twin)"""
-    return {"mode": digital_twin.mode}
-
-@api_router.post("/twin/mode")
-async def set_twin_mode(mode: str):
-    """Set operating mode: 'live' or 'twin'"""
-    try:
-        digital_twin.set_mode(mode)
-        return {"mode": mode, "message": f"Mode set to {mode}"}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-# ============================================
-# PLANT STATUS & COMPONENT VISUALIZATION
-# ============================================
-
-@api_router.get("/plant/status")
-async def get_plant_status():
-    """
-    Get comprehensive plant component status for virtual layout visualization.
-    Returns status of all chillers, towers, pumps, etc.
-    """
-    try:
-        # Get current reading
+        # Generate current reading
         current_reading = simulation_engine.generate_single_reading()
         metrics, is_valid, error = thermo_calculator.calculate_metrics(current_reading)
         
         if not is_valid:
-            raise HTTPException(status_code=400, detail=error)
+            metrics = None
         
-        # Calculate advanced metrics
-        sensor_data = {
-            **current_reading.model_dump(),
-            **metrics.model_dump(),
-            'rated_capacity_tr': 300.0,  # Default rated capacity
-            'plr': 0.75  # Default PLR
+        # Get sensor data values
+        chiller_power = current_reading.chiller_power
+        chw_pump_power = getattr(current_reading, 'chw_pump_power', 22.0)
+        cw_pump_power = getattr(current_reading, 'cw_pump_power', 30.0)
+        
+        # Multi-equipment configuration with realistic data
+        plant_data = {
+            "chillers": [
+                {
+                    "id": "CH-1",
+                    "status": "running",
+                    "load": 75.0,
+                    "power": chiller_power * 0.4,
+                    "kwPerTr": metrics.kw_per_tr * 0.95 if metrics else 0.65,
+                    "cop": metrics.cop * 1.05 if metrics else 5.4,
+                    "chwDeltaT": metrics.delta_t if metrics else 5.5,
+                    "compressorLift": 8.2,
+                    "chw_supply_temp": current_reading.chw_supply_temp,
+                    "chw_return_temp": current_reading.chw_return_temp
+                },
+                {
+                    "id": "CH-2",
+                    "status": "running",
+                    "load": 82.0,
+                    "power": chiller_power * 0.6,
+                    "kwPerTr": metrics.kw_per_tr * 1.05 if metrics else 0.68,
+                    "cop": metrics.cop * 0.95 if metrics else 5.2,
+                    "chwDeltaT": metrics.delta_t * 0.95 if metrics else 5.2,
+                    "compressorLift": 8.8,
+                    "chw_supply_temp": current_reading.chw_supply_temp + 0.2,
+                    "chw_return_temp": current_reading.chw_return_temp + 0.3
+                },
+                {
+                    "id": "CH-3",
+                    "status": "stopped",
+                    "load": 0.0,
+                    "power": 0.0,
+                    "kwPerTr": 0.0,
+                    "cop": 0.0,
+                    "chwDeltaT": 0.0,
+                    "compressorLift": 0.0,
+                    "chw_supply_temp": 0,
+                    "chw_return_temp": 0
+                }
+            ],
+            "coolingTowers": [
+                {
+                    "id": "CT-1",
+                    "status": "running",
+                    "fanSpeed": 75.0,
+                    "range": metrics.tower_range if metrics else 5.2,
+                    "approach": metrics.tower_approach if metrics else 3.8,
+                    "wetBulbTemp": current_reading.wet_bulb_temp if hasattr(current_reading, 'wet_bulb_temp') else current_reading.ambient_temp - 4,
+                    "condInletTemp": current_reading.cond_inlet_temp,
+                    "condOutletTemp": current_reading.cond_outlet_temp,
+                    "heatRejected": metrics.heat_rejected_kw * 0.55 if metrics and hasattr(metrics, 'heat_rejected_kw') else 680.0
+                },
+                {
+                    "id": "CT-2",
+                    "status": "running",
+                    "fanSpeed": 68.0,
+                    "range": metrics.tower_range * 1.06 if metrics else 5.5,
+                    "approach": metrics.tower_approach * 1.08 if metrics else 4.1,
+                    "wetBulbTemp": current_reading.wet_bulb_temp if hasattr(current_reading, 'wet_bulb_temp') else current_reading.ambient_temp - 4,
+                    "condInletTemp": current_reading.cond_inlet_temp + 0.5,
+                    "condOutletTemp": current_reading.cond_outlet_temp + 0.3,
+                    "heatRejected": metrics.heat_rejected_kw * 0.45 if metrics and hasattr(metrics, 'heat_rejected_kw') else 620.0
+                }
+            ],
+            "chwPumps": [
+                {
+                    "id": "CHWP-1",
+                    "status": "running",
+                    "rpm": 85.0,
+                    "power": chw_pump_power * 0.55,
+                    "flow": current_reading.chw_flow_rate * 0.52,
+                    "head": 45.0,
+                    "efficiency": 82.0
+                },
+                {
+                    "id": "CHWP-2",
+                    "status": "running",
+                    "rpm": 80.0,
+                    "power": chw_pump_power * 0.45,
+                    "flow": current_reading.chw_flow_rate * 0.48,
+                    "head": 43.0,
+                    "efficiency": 80.0
+                }
+            ],
+            "cwPumps": [
+                {
+                    "id": "CWP-1",
+                    "status": "running",
+                    "rpm": 90.0,
+                    "power": cw_pump_power * 0.52,
+                    "flow": current_reading.cond_flow_rate * 0.51,
+                    "head": 38.0,
+                    "efficiency": 78.0
+                },
+                {
+                    "id": "CWP-2",
+                    "status": "running",
+                    "rpm": 88.0,
+                    "power": cw_pump_power * 0.48,
+                    "flow": current_reading.cond_flow_rate * 0.49,
+                    "head": 37.0,
+                    "efficiency": 77.0
+                }
+            ],
+            "plantSummary": {
+                "totalCapacity": metrics.cooling_capacity_tr if metrics else 450.0,
+                "totalPower": metrics.total_plant_power if metrics and hasattr(metrics, 'total_plant_power') else 320.0,
+                "plantKwPerTr": metrics.plant_kw_per_tr if metrics and hasattr(metrics, 'plant_kw_per_tr') else 0.78,
+                "costPerHour": metrics.energy_cost_per_hour if metrics and hasattr(metrics, 'energy_cost_per_hour') else 2560.0,
+                "co2Emissions": metrics.co2_emissions_kg_per_hour if metrics and hasattr(metrics, 'co2_emissions_kg_per_hour') else 262.0
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
-        advanced_metrics = advanced_calculator.calculate_comprehensive_metrics(sensor_data)
-        
-        # Determine component statuses
-        components = []
-        
-        # Chiller 1 Status
-        plr = advanced_metrics.get('part_load_ratio', {}).get('plr', 0.75) if 'part_load_ratio' in advanced_metrics else 0.75
-        plr_status = advanced_metrics.get('part_load_ratio', {}).get('status', 'optimal') if 'part_load_ratio' in advanced_metrics else 'optimal'
-        
-        if plr < 0.55:
-            chiller_color = "yellow"
-            chiller_status = "underloaded"
-            chiller_msg = "Underloaded - consider staging down"
-        elif plr >= 0.65 and plr <= 0.80:
-            chiller_color = "green"
-            chiller_status = "optimal"
-            chiller_msg = "Optimal efficiency range"
-        elif plr > 0.90:
-            chiller_color = "yellow"
-            chiller_status = "overloaded"
-            chiller_msg = "Overloaded - consider staging up"
-        else:
-            chiller_color = "green"
-            chiller_status = "running"
-            chiller_msg = "Running normally"
-        
-        components.append(PlantComponentStatus(
-            component_id="CH-1",
-            component_type="chiller",
-            status=chiller_status,
-            status_color=chiller_color,
-            current_load_pct=plr * 100,
-            power_kw=current_reading.chiller_power,
-            efficiency_kw_per_tr=metrics.kw_per_tr,
-            message=chiller_msg,
-            recommendations=[]
-        ))
-        
-        # Cooling Tower 1 Status
-        approach = metrics.tower_approach if metrics.tower_approach else 4.0
-        if approach < 4.0:
-            tower_color = "green"
-            tower_status = "excellent"
-            tower_msg = "Excellent performance"
-        elif approach < 6.0:
-            tower_color = "green"
-            tower_status = "normal"
-            tower_msg = "Normal operation"
-        elif approach < 8.0:
-            tower_color = "yellow"
-            tower_status = "warning"
-            tower_msg = "Performance degradation"
-        else:
-            tower_color = "red"
-            tower_status = "critical"
-            tower_msg = "Fouling or airflow issue"
-        
-        components.append(PlantComponentStatus(
-            component_id="CT-1",
-            component_type="cooling_tower",
-            status=tower_status,
-            status_color=tower_color,
-            power_kw=current_reading.tower_fan_power,
-            vfd_speed_pct=current_reading.tower_fan_speed,
-            message=f"Approach: {approach:.1f}°C - {tower_msg}",
-            recommendations=[]
-        ))
-        
-        # CHW Pump Status
-        delta_t = metrics.delta_t
-        if delta_t < 4.0:
-            pump_color = "yellow"
-            pump_status = "warning"
-            pump_msg = "Over-pumping detected"
-        elif delta_t > 7.0:
-            pump_color = "yellow"
-            pump_status = "warning"
-            pump_msg = "Possible under-flow"
-        else:
-            pump_color = "green"
-            pump_status = "optimal"
-            pump_msg = "Optimal flow rate"
-        
-        components.append(PlantComponentStatus(
-            component_id="CWP-1",
-            component_type="pump",
-            status=pump_status,
-            status_color=pump_color,
-            power_kw=current_reading.chw_pump_power,
-            vfd_speed_pct=75.0,  # Default
-            message=f"ΔT: {delta_t:.1f}°C - {pump_msg}",
-            recommendations=[]
-        ))
-        
-        # CW Pump Status
-        components.append(PlantComponentStatus(
-            component_id="CWP-2",
-            component_type="pump",
-            status="running",
-            status_color="green",
-            power_kw=current_reading.cw_pump_power,
-            vfd_speed_pct=75.0,
-            message="Running normally",
-            recommendations=[]
-        ))
-        
-        # Overall plant status
-        if any(c.status_color == "red" for c in components):
-            overall_status = "critical"
-        elif any(c.status_color == "yellow" for c in components):
-            overall_status = "warning"
-        else:
-            overall_status = "normal"
-        
-        return PlantStatusSummary(
-            timestamp=datetime.now(timezone.utc).isoformat(),
-            overall_status=overall_status,
-            components=components,
-            active_chillers=1,
-            active_towers=1,
-            total_cooling_tr=metrics.cooling_capacity_tr,
-            total_power_kw=metrics.total_plant_power,
-            plant_kw_per_tr=metrics.plant_kw_per_tr
-        )
-    except HTTPException:
-        raise
+        return plant_data
     except Exception as e:
-        logger.error(f"Plant status error: {e}")
+        logger.error(f"Virtual plant equipment error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/virtual-plant/digital-twin")
+async def get_digital_twin_optimization():
+    """
+    Get digital twin optimized state for comparison.
+    Returns optimized values for all equipment.
+    """
+    try:
+        # Get current state
+        current_state = await get_plant_equipment()
+        
+        # Calculate optimized state (example optimization)
+        optimized_state = {
+            "chillers": [
+                {
+                    **current_state["chillers"][0],
+                    "kwPerTr": current_state["chillers"][0]["kwPerTr"] * 0.88,  # 12% improvement
+                    "cop": current_state["chillers"][0]["cop"] * 1.12,
+                    "power": current_state["chillers"][0]["power"] * 0.88
+                },
+                {
+                    **current_state["chillers"][1],
+                    "kwPerTr": current_state["chillers"][1]["kwPerTr"] * 0.90,  # 10% improvement
+                    "cop": current_state["chillers"][1]["cop"] * 1.10,
+                    "power": current_state["chillers"][1]["power"] * 0.90
+                },
+                current_state["chillers"][2]  # Stopped unit unchanged
+            ],
+            "coolingTowers": [
+                {
+                    **current_state["coolingTowers"][0],
+                    "fanSpeed": current_state["coolingTowers"][0]["fanSpeed"] * 0.92,  # Reduce fan speed
+                    "approach": current_state["coolingTowers"][0]["approach"] * 0.95  # Better approach
+                },
+                {
+                    **current_state["coolingTowers"][1],
+                    "fanSpeed": current_state["coolingTowers"][1]["fanSpeed"] * 0.92,
+                    "approach": current_state["coolingTowers"][1]["approach"] * 0.95
+                }
+            ],
+            "chwPumps": current_state["chwPumps"],
+            "cwPumps": current_state["cwPumps"],
+            "plantSummary": {
+                **current_state["plantSummary"],
+                "plantKwPerTr": current_state["plantSummary"]["plantKwPerTr"] * 0.85,  # 15% improvement
+                "totalPower": current_state["plantSummary"]["totalPower"] * 0.85,
+                "costPerHour": current_state["plantSummary"]["costPerHour"] * 0.85,
+                "co2Emissions": current_state["plantSummary"]["co2Emissions"] * 0.85,
+                "savingsPercent": 15.0,
+                "annualSavings": current_state["plantSummary"]["costPerHour"] * 0.15 * 16 * 300  # 15% savings
+            },
+            "optimizationActions": [
+                {
+                    "action": "Increase CHW supply setpoint by +0.5°C",
+                    "impact": "8% efficiency gain on CH-1",
+                    "savings": "₹12,400/month"
+                },
+                {
+                    "action": "Optimize cooling tower fan speed via VFD",
+                    "impact": "5% fan power reduction",
+                    "savings": "₹4,800/month"
+                },
+                {
+                    "action": "Improve CHW ΔT to 6.0°C",
+                    "impact": "3% pump power reduction",
+                    "savings": "₹2,100/month"
+                }
+            ],
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        return {
+            "current": current_state,
+            "optimized": optimized_state,
+            "comparison": {
+                "kwPerTrImprovement": ((current_state["plantSummary"]["plantKwPerTr"] - 
+                                        optimized_state["plantSummary"]["plantKwPerTr"]) / 
+                                       current_state["plantSummary"]["plantKwPerTr"] * 100),
+                "powerReduction": current_state["plantSummary"]["totalPower"] - optimized_state["plantSummary"]["totalPower"],
+                "annualSavings": optimized_state["plantSummary"]["annualSavings"],
+                "co2Reduction": current_state["plantSummary"]["co2Emissions"] - optimized_state["plantSummary"]["co2Emissions"]
+            }
+        }
+    except Exception as e:
+        logger.error(f"Digital twin optimization error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # Include router

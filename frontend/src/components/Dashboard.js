@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Gauge, Activity, Zap, TrendingUp, AlertTriangle, ThermometerSun, Calculator, BarChart3 } from 'lucide-react';
+import { Gauge, Activity, Zap, TrendingUp, AlertTriangle, ThermometerSun, Calculator, BarChart3, Layers } from 'lucide-react';
 import axios from 'axios';
 import MetricsGrid from './MetricsGrid';
 import TrendsChart from './TrendsChart';
@@ -11,6 +11,7 @@ import MLInsights from './MLInsights';
 import DataManagement from './DataManagement';
 import ManualCalculator from './ManualCalculator';
 import EnhancedInsights from './EnhancedInsights';
+import VirtualPlantDisplay from './VirtualPlantDisplay';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -90,10 +91,14 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="max-w-[1600px] mx-auto">
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-7 bg-secondary border border-border" data-testid="main-tabs">
+          <TabsList className="grid w-full grid-cols-8 bg-secondary border border-border" data-testid="main-tabs">
             <TabsTrigger value="dashboard" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground" data-testid="tab-dashboard">
               <Gauge className="w-4 h-4 mr-2" />
               Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="virtual-plant" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground" data-testid="tab-virtual-plant">
+              <Layers className="w-4 h-4 mr-2" />
+              Virtual Plant
             </TabsTrigger>
             <TabsTrigger value="enhanced" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground" data-testid="tab-enhanced">
               <BarChart3 className="w-4 h-4 mr-2" />
@@ -123,6 +128,10 @@ export default function Dashboard() {
 
           <TabsContent value="dashboard" className="mt-6" data-testid="dashboard-content">
             <MetricsGrid summaryData={summaryData} />
+          </TabsContent>
+
+          <TabsContent value="virtual-plant" className="mt-6" data-testid="virtual-plant-content">
+            <VirtualPlantDisplay />
           </TabsContent>
 
           <TabsContent value="enhanced" className="mt-6" data-testid="enhanced-content">
